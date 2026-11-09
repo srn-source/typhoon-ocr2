@@ -63,7 +63,7 @@ print(ocr_v15.parse("page.jpg")[0].markdown)
 Start a server, then point `base_url` and `model` at it:
 
 ```bash
-# vLLM 0.33.0 or newer (GPU)
+# vLLM 0.30.0 or newer (GPU)
 vllm serve typhoon-ai/typhoon-ocr2-2b --max-model-len 40960 \
   --limit-mm-per-prompt '{"image": 1}' \
   --mm-processor-kwargs '{"min_pixels": 2048, "max_pixels": 16777216}'
@@ -90,7 +90,7 @@ ocr = TyphoonOCR(
 )
 ```
 
-For the smaller page parser, use `typhoon-ai/typhoon-ocr2-0.8b` (Ollama: `SuraponOCR/typhoon-ocr2-0.8b`). On vLLM older than 0.33.0, add `--enforce-eager` to `vllm serve`: in the default compiled mode of vLLM 0.27.1, accuracy dropped by about 9 points on MDPBench. Other OpenAI-compatible servers work the same way.
+For the smaller page parser, use `typhoon-ai/typhoon-ocr2-0.8b` (Ollama: `SuraponOCR/typhoon-ocr2-0.8b`). On vLLM older than 0.30.0, add `--enforce-eager` to `vllm serve`: in the default compiled mode of vLLM 0.27.1, accuracy dropped by about 9 points on MDPBench. Other OpenAI-compatible servers work the same way.
 
 ## What you get back
 
