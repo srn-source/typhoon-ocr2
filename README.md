@@ -187,19 +187,6 @@ The prompts are the ones the models were trained with (`typhoon_ocr2.PARSE_PROMP
 | one page per call | `pages="1-3,5"` or all pages, sent in parallel |
 | needs Poppler for PDFs | no system dependency |
 
-## Development
-
-```bash
-pip install -e ".[dev]"
-pytest                                                                  # unit tests, no GPU needed
-TYPHOON_OCR2_TEST_URL=http://localhost:8000/v1 pytest -m integration    # against a running server
-```
-
-## Releasing
-
-1. On pypi.org, add a Trusted Publisher for project `typhoon-ocr2`: this GitHub repository, workflow `publish.yml`, environment `pypi`.
-2. Bump `__version__` in `src/typhoon_ocr2/__init__.py`, commit, then tag and push: `git tag v0.1.0 && git push origin v0.1.0`.
-
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). Use of the Typhoon models is subject to the [OpenTyphoon Terms and Conditions](https://opentyphoon.ai/tac).
