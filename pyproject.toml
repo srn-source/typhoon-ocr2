@@ -9,7 +9,7 @@ description = "Parse Thai and English documents (PDFs and images) into layout el
 readme = "README.md"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Surapon Nonesung" }]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = ["httpx>=0.24", "pillow>=9.0", "pypdfium2>=4.0"]
 keywords = ["ocr", "document-parsing", "layout-analysis", "thai", "vlm", "typhoon"]
 classifiers = [
