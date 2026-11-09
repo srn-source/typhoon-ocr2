@@ -1,0 +1,7 @@
+typhoon-ocr2
+Copyright 2026 Surapon Nonesung
+
+This project is derived from typhoon-ocr (https://github.com/scb-10x/typhoon-ocr),
+Copyright the Typhoon OCR Contributors, SCB 10X, licensed under the Apache License 2.0.
+It is maintained as a separate package with the Typhoon team's permission.
+"Typhoon" is used to refer to the Typhoon models; this package is not an official SCB 10X product.

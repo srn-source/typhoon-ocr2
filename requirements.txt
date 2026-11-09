@@ -1,7 +1,0 @@
-openai
-python-dotenv
-ftfy
-pypdf
-gradio
-pillow
-typhoon-ocr

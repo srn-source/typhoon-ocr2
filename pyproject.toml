@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "typhoon-ocr2"
+dynamic = ["version"]
+description = "Parse Thai and English documents (PDFs and images) into layout elements and Markdown with Typhoon OCR V2"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Surapon Nonesung" }]
+requires-python = ">=3.9"
+dependencies = ["httpx>=0.24", "pillow>=9.0", "pypdfium2>=4.0"]
+keywords = ["ocr", "document-parsing", "layout-analysis", "thai", "vlm", "typhoon"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+    "Natural Language :: Thai",
+    "Natural Language :: English",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+typhoon-ocr2 = "typhoon_ocr2.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/srn-source/typhoon-ocr2"
+"Model (2B)" = "https://huggingface.co/typhoon-ai/typhoon-ocr2-2b"
+"Model (0.8B)" = "https://huggingface.co/typhoon-ai/typhoon-ocr2-0.8b"
+Playground = "https://playground.opentyphoon.ai/ocr"
+
+[tool.setuptools.dynamic]
+version = { attr = "typhoon_ocr2.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: needs a running model server (set TYPHOON_OCR2_TEST_URL)"]
