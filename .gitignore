@@ -1,4 +1,7 @@
 .env
+.env.*
+!.env.example
+!.env.template
 *.pyc
 .specstory
 # typhoon-ocr2
@@ -7,3 +10,7 @@ build/
 *.egg-info/
 .pytest_cache/
 out/
+.venv/
+venv/
+__pycache__/
+.DS_Store
