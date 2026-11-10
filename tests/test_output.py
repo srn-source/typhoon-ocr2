@@ -3,7 +3,7 @@ import json
 import pytest
 from PIL import Image
 
-from typhoon_ocr2 import draw_layout, parse_elements, parse_json, to_markdown, to_pixels
+from typhoon_ocr2 import draw_layout, output, parse_elements, parse_json, to_markdown, to_pixels
 from conftest import ELEMENTS
 
 RAW = json.dumps(ELEMENTS, ensure_ascii=False)
@@ -72,15 +72,30 @@ def test_deeply_nested_output_is_not_json_and_does_not_raise_recursion_error():
     assert parse_json(deep) is None and parse_json('{"a": ' + deep) is None
 
 
-def test_a_complete_answer_nested_too_deeply_to_read_is_not_cut_short():
-    # Python 3.10 cannot read about 1,000 levels, 3.14 100,000. An answer whose brackets all close is complete: it is
-    # not layout JSON this Python can read (parse_error), not an answer cut off at the token limit, whose last
-    # element would be dropped without a word.
-    deep = "[" * 100_000 + "]" * 100_000
+def test_a_complete_answer_nested_too_deeply_to_read_is_not_cut_short(monkeypatch):
+    # How deep Python reads JSON depends on its version and on the C stack of the platform (3.10 stops at about 1,000
+    # levels; 3.14 below 100,000 on macOS, above it on Linux), so the decoder's RecursionError is simulated. An answer
+    # whose brackets all close is complete: it is not layout JSON this Python can read (parse_error), not an answer
+    # cut off at the token limit, whose last element would be dropped without a word.
+    deep, real_loads = "[" * 50 + "]" * 50, json.loads
+
+    def loads(text, *args, **kwargs):
+        if deep in text:
+            raise RecursionError("maximum recursion depth exceeded")
+        return real_loads(text, *args, **kwargs)
+
+    class Decoder(json.JSONDecoder):
+        def raw_decode(self, text, *args, **kwargs):
+            if deep in text:
+                raise RecursionError("maximum recursion depth exceeded")
+            return super().raw_decode(text, *args, **kwargs)
+    monkeypatch.setattr(output.json, "loads", loads)
+    monkeypatch.setattr(output, "_DECODER", Decoder())
     ok, too_deep = json.dumps(ELEMENTS[1], ensure_ascii=False), '{"bbox": [1, 2, 3, 4], "text": ' + deep + "}"
     for raw in ("[" + too_deep + "]", "[" + ok + ", " + too_deep + "]", "[" + too_deep + ", " + ok + "]"):
         with pytest.raises(ValueError, match="nested too deeply"):
             parse_elements("```json\n" + raw + "\n```")
+    assert parse_elements("```json\n[" + ok + "]\n```") == [ELEMENTS[1]]    # the decoder still reads the rest
 
 
 @pytest.mark.parametrize("raw", ["```json\n[]```", "[]```", "```json\n[] ```", "```json\n[]\n```"])

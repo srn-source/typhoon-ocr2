@@ -141,7 +141,8 @@ def _json_text(raw: str) -> str:
 
 
 class _TooDeep(ValueError):
-    """JSON nested too deeply for this Python to read (3.10 stops at a depth of about 1,000, 3.14 at 100,000)."""
+    """JSON nested too deeply for this Python to read (3.10 stops at a depth of about 1,000; later versions go deeper,
+    as far as the C stack of the platform allows)."""
 
 
 def _closed(text: str) -> bool:
