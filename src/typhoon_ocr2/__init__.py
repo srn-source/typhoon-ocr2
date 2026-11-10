@@ -8,7 +8,7 @@
     >>> print(page.markdown)
 """
 from .client import PageResult, TyphoonOCR, TyphoonOCRError, ocr_document
-from .images import load_pages, render_pdf_pages, upscale_min_long
+from .images import iter_pages, load_pages, render_pdf_pages, upscale_min_long
 from .output import CATEGORIES, draw_layout, parse_elements, parse_json, to_markdown, to_pixels
 from .prompts import EXTRACT_ALL_PROMPT, PARSE_PROMPT, V15_PROMPT
 
@@ -17,6 +17,6 @@ __version__ = "0.1.0"
 __all__ = [
     "TyphoonOCR", "PageResult", "TyphoonOCRError", "ocr_document",
     "parse_elements", "to_markdown", "to_pixels", "draw_layout", "parse_json", "CATEGORIES",
-    "load_pages", "render_pdf_pages", "upscale_min_long",
+    "iter_pages", "load_pages", "render_pdf_pages", "upscale_min_long",
     "PARSE_PROMPT", "EXTRACT_ALL_PROMPT", "V15_PROMPT",
 ]
