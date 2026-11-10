@@ -5,6 +5,17 @@ import httpx
 import pytest
 from PIL import Image, ImageDraw
 
+# Settings TyphoonOCR reads from the environment. A developer may have them set (typhoon-ocr's .env.template
+# set TYPHOON_OCR_MODEL), so unit tests run without them; the integration tests use them.
+ENV_SETTINGS = ("TYPHOON_OCR_MODEL", "TYPHOON_OCR_BASE_URL", "TYPHOON_API_KEY", "TYPHOON_OCR_API_KEY", "OPENAI_API_KEY")
+
+
+@pytest.fixture(autouse=True)
+def no_env_settings(request, monkeypatch):
+    if request.node.get_closest_marker("integration") is None:
+        for name in ENV_SETTINGS:
+            monkeypatch.delenv(name, raising=False)
+
 
 @pytest.fixture
 def page_image():
