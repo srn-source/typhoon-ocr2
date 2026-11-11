@@ -13,7 +13,7 @@ from .images import iter_pages, load_pages, render_pdf_pages, upscale_min_long
 from .output import CATEGORIES, draw_layout, parse_elements, parse_json, to_markdown, to_pixels, validate_exclude
 from .prompts import EXTRACT_ALL_PROMPT, PARSE_PROMPT, V15_PROMPT
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "TyphoonOCR", "PageResult", "TyphoonOCRError", "PartialParseError", "ocr_document",
