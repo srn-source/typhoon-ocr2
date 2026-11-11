@@ -1,11 +1,37 @@
 # Publishes to PyPI when a version tag (v0.1.0, ...) is pushed. Uses PyPI Trusted Publishing:
-# no API token is stored in the repository. Set it up once on pypi.org (see README: Releasing).
+# no API token is stored in the repository. Nothing is published unless the tests pass and the tag matches
+# __version__.
+#
+# Set up once:
+#   1. On pypi.org, add a Trusted Publisher for project typhoon-ocr2: this GitHub repository, workflow publish.yml,
+#      environment pypi.
+#   2. On GitHub, in Settings > Environments > pypi, add yourself as a required reviewer and allow only tags
+#      matching v*, so that a pushed tag cannot publish without your approval.
+# To release: bump __version__ in src/typhoon_ocr2/__init__.py, commit, push master and wait for the tests to pass.
+# Then tag that commit with v and the same version and push the tag (git tag vX.Y.Z && git push origin vX.Y.Z).
+# This workflow runs the tests again, stops if the tag does not match __version__, tests the built wheel, and then
+# waits for your approval.
 name: publish
 on:
   push:
     tags: ["v*"]
+permissions:
+  contents: read
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev]"
+      - run: pytest -q
   build:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -13,7 +39,13 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install build && python -m build
-      - uses: actions/upload-artifact@v4
+      - name: Check that the tag matches __version__
+        run: |
+          test -f "dist/typhoon_ocr2-${GITHUB_REF_NAME#v}.tar.gz" || {
+            echo "::error::tag $GITHUB_REF_NAME does not match the version that was built:"; ls dist; exit 1; }
+      - name: Test the built wheel
+        run: pip install dist/*.whl "pytest>=7" && pytest -q
+      - uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
@@ -24,7 +56,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/

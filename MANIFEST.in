@@ -1,0 +1,3 @@
+# The sdist ships the whole test suite: setuptools adds only tests/test*.py by itself.
+include tests/conftest.py
+recursive-include tests/data *

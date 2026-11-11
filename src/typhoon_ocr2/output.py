@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Dict, Iterable, List, Optional, Sequence
+from collections.abc import Mapping
+from typing import Dict, FrozenSet, Iterable, List, Optional, Sequence
 
 from PIL import Image, ImageDraw
 
@@ -12,31 +13,61 @@ CATEGORIES = ("header", "title", "text", "figure", "table", "formula", "figure_c
 HEADER_FOOTER = frozenset({"header", "footer", "page_footnote"})
 
 _FENCE = re.compile(r"```(?:json)?\s*\n(.*?)(?:\n```|$)", re.DOTALL)
+_DECODER = json.JSONDecoder()
+_STRING = re.compile(r'"(?:[^"\\]|\\.)*"?', re.DOTALL)    # a JSON string, also one cut off (linear time)
 
 
 def parse_elements(raw: str) -> List[Dict]:
     """Parse the model output, a JSON list of elements, usually inside a ```json fence.
 
-    If the output stopped at the token limit, the last, incomplete element is dropped and the complete
-    ones are returned. Raises ValueError when no element can be recovered."""
-    m = _FENCE.search(raw)
-    text = (m.group(1) if m else raw).strip()
+    Text after the JSON (a stop token, a note, a closing fence on the same line) is ignored. If the output
+    stopped at the token limit, the last, incomplete element is dropped and the complete ones are returned.
+    Raises ValueError when no element can be recovered, also from a list that holds no element, such as [1, 2]
+    ([] is a page without elements)."""
+    text = _json_text(raw)
     try:
-        data = json.loads(text)
-    except json.JSONDecodeError:
+        data = _decode(text)
+    except ValueError as e:
+        if isinstance(e, _TooDeep) and _closed(text):   # complete, not cut off: no element can be left out
+            raise ValueError("the model output is nested too deeply to read") from None
         cut = text.rfind('{"bbox":')
         if cut <= 0:
             raise ValueError("the model output is not a JSON list of elements") from None
         try:
             data = json.loads(text[:cut].rstrip().rstrip(",") + "]")
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, RecursionError):
             raise ValueError("the model output is not a JSON list of elements") from None
     if isinstance(data, dict):           # the prompt asks for "a JSON object"; accept {"...": [elements]}
         lists = [v for v in data.values() if isinstance(v, list)]
-        data = lists[0] if len(lists) == 1 else [data]
+        if ("bbox" in data or "category" in data) and all(k == "bbox" for k, v in data.items() if isinstance(v, list)):
+            data = [data]                # a single element on its own (its only list is its bbox)
+        else:
+            data = lists[0] if len(lists) == 1 else [data]
     if not isinstance(data, list):
         raise ValueError("the model output is not a JSON list of elements")
-    return [e for e in data if isinstance(e, dict)]
+    elements = [e for e in data if isinstance(e, dict)]
+    if data and not elements:            # e.g. [1, 2]: numbers or strings, not layout elements
+        raise ValueError("the model output is not a JSON list of elements")
+    return elements
+
+
+def validate_exclude(exclude: Optional[Iterable[str]]) -> Optional[FrozenSet[str]]:
+    """Check an `exclude` list of categories and return it as a set (None stays None).
+
+    Raises ValueError for a plain string (pass a list, e.g. ["footer"]) and for names not in CATEGORIES. An empty
+    string names no category, as in 0.1.0: like [], it keeps everything."""
+    if exclude is None:
+        return None
+    if isinstance(exclude, str):
+        if not exclude:
+            return frozenset()
+        example = [exclude.strip() if exclude.strip() in CATEGORIES else "footer"]
+        raise ValueError(f"exclude must be a list of category names, e.g. {example}, not a string")
+    names = list(exclude)
+    unknown = {str(c) for c in names if not isinstance(c, str) or c not in CATEGORIES}
+    if unknown:
+        raise ValueError(f"unknown categories {sorted(unknown)}; choose from {list(CATEGORIES)}")
+    return frozenset(names)
 
 
 def to_markdown(elements: Sequence[Dict], keep_header_footer: bool = False,
@@ -45,15 +76,24 @@ def to_markdown(elements: Sequence[Dict], keep_header_footer: bool = False,
 
     By default, header, footer and page_footnote elements are left out (we evaluated the model this way).
     `keep_header_footer=True` keeps every element. `exclude` sets exactly which categories to leave out,
-    e.g. exclude=["footer"] keeps headers but drops footers, and exclude=[] keeps everything."""
-    if exclude is not None:
-        skip = set(exclude)
-        unknown = skip - set(CATEGORIES)
-        if unknown:
-            raise ValueError(f"unknown categories {sorted(unknown)}; choose from {list(CATEGORIES)}")
-    else:
-        skip = set() if keep_header_footer else HEADER_FOOTER
-    return "\n\n".join(e["text"] for e in elements if e.get("text") and e.get("category") not in skip)
+    e.g. exclude=["footer"] keeps headers but drops footers, and exclude=[] keeps everything (see
+    validate_exclude). Malformed elements do not raise: a number becomes its digits, a list or object its
+    JSON, and an element without text is skipped."""
+    skip = validate_exclude(exclude)
+    if skip is None:
+        skip = frozenset() if keep_header_footer else HEADER_FOOTER
+    parts = []
+    for e in elements:
+        if not isinstance(e, Mapping) or not e.get("text"):
+            continue
+        category = e.get("category")
+        if isinstance(category, str) and category in skip:
+            continue
+        text = e["text"]
+        if not isinstance(text, str):
+            text = json.dumps(text, ensure_ascii=False, default=str) if isinstance(text, (list, dict)) else str(text)
+        parts.append(text)
+    return "\n\n".join(parts)
 
 
 def to_pixels(bbox: Sequence[float], width: int, height: int) -> List[float]:
@@ -86,10 +126,47 @@ def draw_layout(image: Image.Image, elements: Sequence[Dict], numbers: bool = Tr
 
 
 def parse_json(raw: str) -> Optional[object]:
-    """Parse a JSON answer (key-information extraction), with or without a ```json fence.
-    Returns None when the answer is not valid JSON."""
-    m = _FENCE.search(raw)
+    """Parse a JSON answer (key-information extraction), with or without a ```json fence. Text after the
+    JSON is ignored. Returns None when the answer is not valid JSON."""
     try:
-        return json.loads((m.group(1) if m else raw).strip())
-    except json.JSONDecodeError:
+        return _decode(_json_text(raw))
+    except ValueError:
         return None
+
+
+def _json_text(raw: str) -> str:
+    m = _FENCE.search(raw)
+    text = (m.group(1) if m else raw).strip()
+    return text[:-3].rstrip() if text.endswith("```") else text      # a closing fence on the same line: "[]```"
+
+
+class _TooDeep(ValueError):
+    """JSON nested too deeply for this Python to read (3.10 stops at a depth of about 1,000; later versions go deeper,
+    as far as the C stack of the platform allows)."""
+
+
+def _closed(text: str) -> bool:
+    """True when every [ and { in the JSON text is closed (those in strings left out): a complete answer, not one
+    cut off at the token limit."""
+    bare = _STRING.sub("", text)
+    return bare.count("[") + bare.count("{") <= bare.count("]") + bare.count("}")
+
+
+def _decode(text: str):
+    """The JSON value in `text`: the whole text when it is valid JSON, else the object, or the array holding an
+    object, that the text starts with, ignoring the text after it (a stop token, a note, a closing fence). Raises
+    ValueError when the text does not start with one (prose such as "[1] A. Smith, ..." or "[ ] Check the totals"),
+    when more JSON follows it (e.g. objects not inside a list), and when it is nested too deeply to read."""
+    try:
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            if not text.startswith(("[", "{")):
+                raise
+            data, end = _DECODER.raw_decode(text)
+            if text[end:].lstrip().startswith((",", "[", "{")) or not (
+                    isinstance(data, dict) or (isinstance(data, list) and any(isinstance(e, dict) for e in data))):
+                raise
+            return data
+    except RecursionError:               # e.g. a repetition loop of "[" (Python 3.10 fails at a depth of 1,000)
+        raise _TooDeep("the JSON is nested too deeply to read") from None
