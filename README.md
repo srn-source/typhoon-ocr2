@@ -28,7 +28,7 @@ os.environ["TYPHOON_API_KEY"] = "YOUR_KEY"       # your Typhoon API key (or pass
 ocr = TyphoonOCR(
     base_url="https://api.opentyphoon.ai/v1",    # the Typhoon API
     version="v2",                                # Typhoon OCR V2 ("v1.5" for Typhoon OCR 1.5)
-    upscale=True,                                # enlarge images under 1,600 px (recommended; see Settings)
+    upscale=True,                                # required for V2: enlarges images under 1,600 px (see Settings)
 )
 
 pages = ocr.parse("report.pdf", pages="1-3")     # a PDF, an image or a TIFF; pages: "1-3", 2, [1, 4] or None for all
@@ -93,11 +93,11 @@ ocr = TyphoonOCR(
     base_url="http://localhost:8000/v1",
     model="typhoon-ai/typhoon-ocr2-2b",
     version="v2",
-    upscale=True,
+    upscale=True,                                # required for V2
 )
 ```
 
-For the smaller page parser, use `typhoon-ai/typhoon-ocr2-0.8b` (Ollama: `SuraponOCR/typhoon-ocr2-0.8b`). On vLLM older than 0.30.0, add `--enforce-eager` to `vllm serve`: in the default compiled mode of vLLM 0.27.1, accuracy dropped by about 9 points on MDPBench. Other OpenAI-compatible servers work the same way.
+For the smaller page parser, use `typhoon-ai/typhoon-ocr2-0.8b` (Ollama: `SuraponOCR/typhoon-ocr2-0.8b`). Other OpenAI-compatible servers work the same way.
 
 ## Inputs
 
@@ -195,7 +195,7 @@ typhoon-ocr2 report.pdf --base-url $API --max-workers 1 --timeout 1200   # one p
 typhoon-ocr2 page.jpg --base-url http://localhost:11434 --model SuraponOCR/typhoon-ocr2-2b   # Ollama
 ```
 
-To avoid repeating `--base-url`, set `TYPHOON_OCR_BASE_URL` (and `TYPHOON_OCR_MODEL` for `--model`). Add `--no-upscale` to turn upscaling off.
+To avoid repeating `--base-url`, set `TYPHOON_OCR_BASE_URL` (and `TYPHOON_OCR_MODEL` for `--model`).
 
 `--pages` picks PDF pages or TIFF frames; `--ask` and `--extract` read the first one. `--exclude` takes the 13 category names listed above. `--max-workers N` sets how many pages are sent at once (default: 1 on Ollama, 4 elsewhere), `--timeout SECONDS` how long to wait for each answer (default: 600), and `--figure-language` the language of Typhoon OCR 1.5 figure descriptions (default: Thai). `typhoon-ocr2 --help` lists every option.
 
@@ -211,7 +211,7 @@ All settings of `TyphoonOCR(...)`. The defaults are the settings the models were
 | `model` | `$TYPHOON_OCR_MODEL`; else on the Typhoon API, chosen from `version`; on Ollama, `"SuraponOCR/typhoon-ocr2-2b"`; on other servers, the Typhoon OCR model they serve (when they serve several, the first of `version`, V2 by default) | model name on the server; needed only for your own server |
 | `api_key` | `$TYPHOON_API_KEY`, else `$TYPHOON_OCR_API_KEY`, else `$OPENAI_API_KEY` | key for the Typhoon API or another server that needs one (spaces and line breaks at its end are dropped). It is sent to `base_url`, whatever server that is; a warning says when it would go over plain http to another machine |
 | `version` | `"v2"` (or follows the model name, also one found on the server) | `"v2"` or `"v1.5"`: the prompt and output format |
-| `upscale` | `True` | enlarge images whose long side is under 1,600 px. On ThaiOCRBench this raised Typhoon OCR V2 2B from 59.9 to 62.9 and 0.8B from 37.3 to 41.3; large pages are not changed. `False` turns it off; a number sets another size |
+| `upscale` | `True` | enlarges images whose long side is under 1,600 px; large pages are not changed. Required for Typhoon OCR V2: keep it `True`. On ThaiOCRBench it raised Typhoon OCR V2 2B from 59.9 to 62.9 and 0.8B from 37.3 to 41.3 |
 | `max_tokens` | `16384` | output limit per page |
 | `pdf_long_side` | `2048` | PDF pages are rendered with this long side, in pixels |
 | `max_workers` | `4` (`1` on Ollama) | pages sent in parallel. Ollama answers one request at a time unless `OLLAMA_NUM_PARALLEL` is set |
