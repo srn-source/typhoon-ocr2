@@ -5,7 +5,7 @@ Read Thai and English documents (PDFs, images and multi-page TIFFs) with **Typho
 - the page as **Markdown** (tables as HTML, formulas as LaTeX), and
 - with Typhoon OCR V2, the **layout elements** in reading order: each one has a category (title, text, table, …), a bounding box and its text.
 
-Links: [Typhoon OCR V2 2B](https://huggingface.co/typhoon-ai/typhoon-ocr2-2b) · [Typhoon OCR V2 0.8B](https://huggingface.co/typhoon-ai/typhoon-ocr2-0.8b) · [Playground](https://playground.opentyphoon.ai/ocr) · [Typhoon API docs](https://docs.opentyphoon.ai/)
+Links: [Typhoon OCR V2 2B](https://huggingface.co/typhoon-ai/typhoon-ocr2-2b) · [Typhoon OCR V2 0.8B](https://huggingface.co/typhoon-ai/typhoon-ocr2-0.8b) · [Playground](https://playground.opentyphoon.ai/ocr) · [Typhoon API docs](https://docs.opentyphoon.ai/) · [Technical report](https://arxiv.org/abs/2611.27494)
 
 This package continues [scb-10x/typhoon-ocr](https://github.com/scb-10x/typhoon-ocr) (`pip install typhoon-ocr`) with the Typhoon team's permission. It has a new name, so code that uses `typhoon-ocr` keeps working.
 
@@ -238,6 +238,22 @@ Several threads can parse PDFs at the same time, for example with one `TyphoonOC
 | `pdf_or_image_path=`, `target_image_dim=`, `target_text_length=` | removed: pass the file as the first argument; the package sizes the pages for the model |
 | returns a Markdown string | `TyphoonOCR.parse()` also returns layout elements with boxes |
 | needs Poppler for PDFs | no system dependency |
+
+## Citation
+
+If you use Typhoon OCR V2, please cite the [technical report](https://arxiv.org/abs/2611.27494):
+
+```bibtex
+@misc{nonesung2026typhoonocr2thai,
+      title={Typhoon OCR 2: From Thai Document Transcription to Multilingual, Multi-Task OCR},
+      author={Surapon Nonesung and Natapong Nitarach and Sittipong Sripaisarnmongkol and Kunat Pipatanakul and Warit Sirichotedumrong},
+      year={2026},
+      eprint={2611.27494},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2611.27494},
+}
+```
 
 ## License
 
